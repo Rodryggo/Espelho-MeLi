@@ -29,17 +29,30 @@ ARQUIVO_AJUDANTES = "ajudantes.json"
 VALOR_DIARIA = 50.0
 
 # Login com senhas criptografadas
+# Nomes dos usuários e respectivos usernames (IDs únicos)
 nomes = ["Rodrigo", "Luana"]
 usuarios = ["rodrigo", "luana"]
+
+# Hashes de senha gerados com stauth.Hasher().generate([...])
 hashed_pw = [
-    "$2b$12$tr3sZ6UJ4EFmvM0QH0IGme5KUg8VcMCur6ggWrKtToMkUue1e1Hba",  # 1234
-    "$2b$12$AhPR.DGKfdM6UzI8IRW6m.F/zUV7ZzK3gP1Go9uLRsLyvvqnmVkZ2"   # senha123
+    "$2b$12$tr3sZ6UJ4EFmvM0QH0IGme5KUg8VcMCur6ggWrKtToMkUue1e1Hba",  # senha: 1234
+    "$2b$12$AhPR.DGKfdM6UzI8IRW6m.F/zUV7ZzK3gP1Go9uLRsLyvvqnmVkZ2"   # senha: senha123
 ]
 
+# Inicializa a autenticação com cookie de 30 dias
 authenticator = stauth.Authenticate(
-    nomes, usuarios, hashed_pw, "app_ajudante_login", "abcdef", cookie_expiry_days=30
+    nomes,           # Lista de nomes legíveis
+    usuarios,        # Lista de usernames únicos
+    hashed_pw,       # Senhas hash
+    "app_ajudante_login",  # Nome do cookie
+    "abcdef",              # Chave secreta
+    cookie_expiry_days=30
 )
+
+# Exibe a tela de login no centro da página principal
 nome_usuario, autenticado, username = authenticator.login("Login", "main")
+
+# Interrompe a execução se o login falhar
 if not autenticado:
     st.stop()
 # Funções para gerenciar ajudantes
