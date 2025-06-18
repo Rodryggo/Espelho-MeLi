@@ -42,11 +42,11 @@ hashed_pw = [
 
 # Criação do autentificador
 authenticator = stauth.Authenticate(
-    nomes,
-    usuarios,
-    hashed_pw,
-    "app_ajudante_login",  # nome do cookie
-    "cleverson_app",       # chave secreta
+    names=nomes,
+    usernames=usuarios,
+    passwords=hashed_pw,
+    cookie_name="app_ajudante_login",
+    key="cleverson_app",
     cookie_expiry_days=30
 )
 
