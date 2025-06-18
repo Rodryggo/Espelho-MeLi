@@ -161,6 +161,7 @@ def gerar_recibo(df, inicio, fim):
     y -= 20
     c.drawString(x, y, f"Período: {inicio} a {fim}")
     y -= 30
+
     c.setFont("Helvetica", 11)
     total = 0
     for _, row in df.iterrows():
@@ -172,15 +173,18 @@ def gerar_recibo(df, inicio, fim):
         c.drawString(x + 220, y, f"{row['Valor (R$)']:.2f}".replace('.', ','))
         total += row["Valor (R$)"]
         y -= 15
+
     y -= 30
     c.setFont("Helvetica-Bold", 12)
     c.drawString(x, y, f"Total de Diárias: {df.shape[0]}")
     c.drawString(x + 200, y, f"Total: R$ {total:.2f}".replace('.', ','))
+
     y -= 50
     c.setFont("Helvetica", 11)
     c.drawString(x, y, "Assinatura: _________________________")
     y -= 20
-    c.drawString(x, y)
+    c.drawString(x, y, f"Emitido em: {datetime.today().strftime('%d/%m/%Y')}")
+    c.save()
 
 if aba == "Recibo":
     st.subheader("🧾 Gerar Recibo por Dias Escolhidos")
@@ -213,9 +217,15 @@ if aba == "Recibo":
                 with open(ARQUIVO_PDF, "rb") as f:
                     st.download_button("📥 Baixar Recibo PDF", f, file_name="recibo_dias_especificos.pdf")
 
+            import io
+            buffer = io.BytesIO()
+            df_filtro.to_excel(buffer, index=False, engine="openpyxl")
+            buffer.seek(0)
+
             st.download_button("📊 Exportar Excel dos dias",
-                df_filtro.to_excel(index=False, engine="openpyxl"),
-                file_name="recibo_dias_especificos.xlsx"
+                buffer,
+                file_name="recibo_dias_especificos.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
 
             if st.button("🧹 Iniciar Nova Quinzena"):
