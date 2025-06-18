@@ -22,8 +22,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 # Usuários autorizados
 usuarios = {
-    "rodrigo": hashlib.sha256("1234".encode()).hexdigest(),
-    "luana": hashlib.sha256("senha123".encode()).hexdigest()
+    "rodrigo": hashlib.sha256("tas2e97".encode()).hexdigest(),
+    "feliphe": hashlib.sha256("tas2e24".encode()).hexdigest(),
+    "Jonas": hashlib.sha256("tas2e20".encode()).hexdigest()
 }
 
 def autenticar(usuario, senha):
@@ -99,7 +100,7 @@ if aba == "Registrar":
         with col2:
             presente = st.checkbox("Compareceu?", value=True)
 
-        motorista = st.selectbox("Motorista", ["Felipe", "Jonas", "Rodrigo"]) if presente else "-"
+        motorista = st.selectbox("Motorista", ["feliphe", "Jonas", "Rodrigo"]) if presente else "-"
         salvar = st.form_submit_button("Salvar registro")
 
         if salvar:
