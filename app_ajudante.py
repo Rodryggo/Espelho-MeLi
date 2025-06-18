@@ -30,9 +30,8 @@ def autenticar(usuario, senha):
     senha_hash = hashlib.sha256(senha.encode()).hexdigest()
     return usuario in usuarios and usuarios[usuario] == senha_hash
 
-if "autenticado" not in st.session_state:
-    st.session_state.autenticado = False
-    st.session_state.usuario = ""
+st.session_state.setdefault("autenticado", False)
+st.session_state.setdefault("usuario", "")
 
 if not st.session_state.autenticado:
     st.title("🔐 Login")
