@@ -1,5 +1,6 @@
-streamlit
+streamlit==1.33.0
 pandas
 openpyxl
 reportlab
-streamlit-authenticator
+altair
+streamlit-authenticator==0.2.3
