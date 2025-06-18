@@ -36,8 +36,7 @@ usuarios = ["rodrigo", "luana"]
 # Hashes de senha gerados com stauth.Hasher().generate([...])
 hashed_pw = [
     "$2b$12$tr3sZ6UJ4EFmvM0QH0IGme5KUg8VcMCur6ggWrKtToMkUue1e1Hba",  # senha: 1234
-    "$2b$12$AhPR.DGKfdM6UzI8IRW6m.F/zUV7ZzK3gP1Go9uLRsLyvvqnmVkZ2"   # senha: senha123
-]
+    "$2b$12$AhPR.DGKfdM6UzI8IRW6m.F/zUV7ZzK3gP1Go9uLRsLyvvqnmVkZ2"]   # senha: senha123
 
 # Inicializa a autenticação com cookie de 30 dias
 authenticator = stauth.Authenticate(
