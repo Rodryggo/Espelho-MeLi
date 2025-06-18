@@ -39,7 +39,14 @@ hashed_pw = [
     "$2b$12$AhPR.DGKfdM6UzI8IRW6m.F/zUV7ZzK3gP1Go9uLRsLyvvqnmVkZ2"]   # senha: senha123
 
 # Inicializa a autenticação com cookie de 30 dias
-authenticator = stauth.Authenticate(nomes,usuarios,hashed_pw,"app_ajudante_login","abcdef",cookie_expiry_days=30)
+authenticator = stauth.Authenticate(
+    nomes,
+    usuarios,
+    hashed_pw,
+    "app_ajudante_login",   # nome do cookie (pode ser qualquer string única)
+    "cleverson_app",        # chave secreta (também pode ser qualquer string única)
+    cookie_expiry_days=30   # validade do cookie em dias
+)
 
 # Exibe a tela de login no centro da página principal
 nome_usuario, autenticado, username = authenticator.login("Login", "main")
