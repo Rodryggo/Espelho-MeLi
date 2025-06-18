@@ -42,9 +42,9 @@ def salvar_ajudantes(lista):
 # Login com múltiplos usuários
 nomes = ["Rodrigo", "Luana"]
 usuarios = ["rodrigo", "luana"]
-senhas_hash = stauth.Hasher(["1234", "senha123"]).generate()
+hashed_pw = stauth.Hasher(["1234", "senha123"]).generate()
 
-auth = stauth.Authenticate(nomes, usuarios, senhas_hash, "app_ajudante_login", "abcdef", cookie_expiry_days=30)
+authenticator = stauth.Authenticate(nomes, usuarios, hashed_pw,"app_ajudante_login", "abcdef", cookie_expiry_days=30)
 nome_usuario, autenticado, username = auth.login("Login", "main")
 if not autenticado:
     st.stop()
