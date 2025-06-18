@@ -179,4 +179,4 @@ def gerar_recibo(df, inicio, fim):
     c.setFont("Helvetica", 11)
     c.drawString(x, y, "Assinatura: _________________________")
     y -= 20
-    c.drawString(x, y
+    c.drawString(x, y)
