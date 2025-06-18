@@ -5,30 +5,44 @@ import json
 from datetime import datetime, timedelta
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
-import streamlit_authenticator as stauth
 import altair as alt
+import streamlit_authenticator as stauth
 
-# Estilo escuro
 st.set_page_config(page_title="Controle de Presença - Ajudante", layout="centered")
+
+# Estilo escuro e responsivo
 st.markdown("""
     <style>
-        body { background-color: #1e1e1e; color: #f2f2f2; }
-        .stApp { background-color: #1e1e1e; color: #f2f2f2; }
+        body, .stApp { background-color: #1e1e1e; color: #f2f2f2; }
         .stButton>button, .stDownloadButton>button {
             background-color: #4CAF50; color: white; border: none; border-radius: 6px;
             padding: 8px 16px; font-size: 16px;
         }
-        .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 { color: #ffffff; }
+        .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 { color: white; }
     </style>
 """, unsafe_allow_html=True)
 
 # Arquivos e constantes
-VALOR_DIARIA = 50.0
 ARQUIVO_EXCEL = "resumo_ajudante.xlsx"
 ARQUIVO_PDF = "recibo_ajudante.pdf"
 ARQUIVO_AJUDANTES = "ajudantes.json"
+VALOR_DIARIA = 50.0
 
-# Carregar ou salvar lista de ajudantes
+# Login com senhas criptografadas
+nomes = ["Rodrigo", "Luana"]
+usuarios = ["rodrigo", "luana"]
+hashed_pw = [
+    "$2b$12$tr3sZ6UJ4EFmvM0QH0IGme5KUg8VcMCur6ggWrKtToMkUue1e1Hba",  # 1234
+    "$2b$12$AhPR.DGKfdM6UzI8IRW6m.F/zUV7ZzK3gP1Go9uLRsLyvvqnmVkZ2"   # senha123
+]
+
+authenticator = stauth.Authenticate(
+    nomes, usuarios, hashed_pw, "app_ajudante_login", "abcdef", cookie_expiry_days=30
+)
+nome_usuario, autenticado, username = authenticator.login("Login", "main")
+if not autenticado:
+    st.stop()
+# Funções para gerenciar ajudantes
 def carregar_ajudantes():
     if os.path.exists(ARQUIVO_AJUDANTES):
         with open(ARQUIVO_AJUDANTES, "r") as f:
@@ -39,27 +53,16 @@ def salvar_ajudantes(lista):
     with open(ARQUIVO_AJUDANTES, "w") as f:
         json.dump(lista, f)
 
-# Login com múltiplos usuários
-nomes = ["Rodrigo", "Luana"]
-usuarios = ["rodrigo", "luana"]
-hashed_pw = stauth.Hasher(["1234", "senha123"]).generate()
-
-authenticator = stauth.Authenticate(nomes, usuarios, hashed_pw,"app_ajudante_login", "abcdef", cookie_expiry_days=30)
-nome_usuario, autenticado, username = auth.login("Login", "main")
-if not autenticado:
-    st.stop()
-# Menu lateral e seleção de ajudante
+# Menu lateral
 st.sidebar.title("📁 Menu")
 
-# Carregar ajudantes
+# Seleção do ajudante
 ajudantes = carregar_ajudantes()
-
-# Seletor de ajudante
 ajudante_selecionado = st.sidebar.selectbox("👤 Ajudante", ajudantes)
 
 # Adicionar novo ajudante
 with st.sidebar.expander("➕ Adicionar novo ajudante"):
-    novo_ajudante = st.text_input("Novo nome")
+    novo_ajudante = st.text_input("Novo ajudante")
     if st.button("Salvar Ajudante"):
         if novo_ajudante and novo_ajudante not in ajudantes:
             ajudantes.append(novo_ajudante)
@@ -69,8 +72,10 @@ with st.sidebar.expander("➕ Adicionar novo ajudante"):
         elif novo_ajudante in ajudantes:
             st.warning("Ajudante já existe.")
 
-# Menu de abas
-aba = st.sidebar.radio("Navegação", ["Início", "Registrar", "Relatórios", "Recibo"])
+# Navegação entre páginas
+aba = st.sidebar.radio("Navegar para", ["Início", "Registrar", "Relatórios", "Recibo"])
+
+# Identificação do usuário logado
 st.sidebar.markdown(f"🔐 Logado como **{nome_usuario}**")
 # Funções para carregar e salvar dados
 def carregar_dados():
@@ -81,24 +86,27 @@ def carregar_dados():
 def salvar_dados(df):
     df.to_excel(ARQUIVO_EXCEL, index=False)
 
-# Página: Registrar
+# Página: Registrar presença
 if aba == "Registrar":
     st.subheader("📝 Registro de Presença")
 
-    with st.form("registro_form"):
+    with st.form("formulario_presenca"):
         col1, col2 = st.columns(2)
         with col1:
-            data = st.date_input("Data", value=datetime.today())
+            data = st.date_input("Data da presença", value=datetime.today())
         with col2:
             presente = st.checkbox("Compareceu?", value=True)
 
         motorista = st.selectbox("Motorista", ["Felipe", "Jonas", "Rodrigo"]) if presente else "-"
 
-        enviar = st.form_submit_button("Salvar Registro")
-        if enviar:
+        enviado = st.form_submit_button("Salvar registro")
+
+        if enviado:
             df = carregar_dados()
             data_str = data.strftime("%d/%m/%Y")
-            df = df[~((df["Data"] == data_str) & (df["Ajudante"] == ajudante_selecionado))]  # Evita duplicatas
+
+            # Remove duplicata no mesmo dia
+            df = df[~((df["Data"] == data_str) & (df["Ajudante"] == ajudante_selecionado) & (df["Usuário"] == username))]
 
             novo = pd.DataFrame([{
                 "Usuário": username,
@@ -111,18 +119,19 @@ if aba == "Registrar":
 
             df = pd.concat([df, novo], ignore_index=True).sort_values("Data")
             salvar_dados(df)
+
             st.success(f"Registro salvo para {data_str}.")
 if aba == "Relatórios":
     st.subheader("📈 Relatórios e Gráficos")
     df_dados = carregar_dados()
-    df_dados = df_dados[df_dados["Ajudante"] == ajudante_selecionado]
-    df_dados = df_dados[df_dados["Usuário"] == username]
+    df_dados = df_dados[(df_dados["Ajudante"] == ajudante_selecionado) & (df_dados["Usuário"] == username)]
+
     if df_dados.empty:
-        st.warning("Nenhum dado encontrado para este ajudante.")
+        st.warning("Nenhum registro encontrado para este ajudante.")
     else:
         df_dados["Data_ord"] = pd.to_datetime(df_dados["Data"], dayfirst=True)
-        
-        st.markdown("#### 🔎 Filtro por período")
+
+        st.markdown("#### 🔍 Filtro por período")
         col1, col2 = st.columns(2)
         with col1:
             data_ini = st.date_input("Início", value=datetime.today().replace(day=1))
@@ -133,30 +142,35 @@ if aba == "Relatórios":
                                (df_dados["Data_ord"] <= pd.to_datetime(data_fim))]
 
         if df_filtrado.empty:
-            st.warning("Nenhum registro no intervalo selecionado.")
+            st.info("Nenhum dado no intervalo selecionado.")
         else:
-            st.markdown(f"Total de dias trabalhados: **{df_filtrado[df_filtrado['Comparecimento']=='Presente'].shape[0]}**")
-            
-            with st.expander("📄 Visualizar registros"):
+            st.markdown(f"**Dias trabalhados:** {df_filtrado[df_filtrado['Comparecimento'] == 'Presente'].shape[0]}")
+
+            with st.expander("📋 Ver dados"):
                 st.dataframe(df_filtrado.reset_index(drop=True), use_container_width=True)
 
-            st.markdown("#### 📊 Presenças por motorista")
+            st.markdown("#### 🚗 Presenças por Motorista")
             pres_motorista = df_filtrado[df_filtrado["Comparecimento"] == "Presente"]["Motorista"].value_counts().reset_index()
             pres_motorista.columns = ["Motorista", "Presenças"]
-            chart = alt.Chart(pres_motorista).mark_bar().encode(
+            st.altair_chart(alt.Chart(pres_motorista).mark_bar().encode(
                 x=alt.X("Motorista", sort="-y"),
                 y="Presenças",
                 tooltip=["Motorista", "Presenças"]
-            ).properties(width=500, height=300)
-            st.altair_chart(chart)
+            ).properties(width=500, height=300))
 
-            st.markdown("#### 📅 Linha do tempo")
-            linha = df_filtrado.groupby("Data_ord")["Comparecimento"].apply(lambda x: (x=="Presente").sum()).reset_index(name="Presenças")
+            st.markdown("#### 📆 Linha do Tempo de Presença")
+            linha = df_filtrado.groupby("Data_ord")["Comparecimento"].apply(lambda x: (x == "Presente").sum()).reset_index(name="Presenças")
             st.altair_chart(alt.Chart(linha).mark_line(point=True).encode(
                 x="Data_ord:T",
                 y="Presenças"
             ).properties(width=500, height=300))
-# Função de gerar recibo PDF
+
+            st.markdown("#### 🍕 Presente vs Ausente")
+            contagem = df_filtrado["Comparecimento"].value_counts().reset_index()
+            contagem.columns = ["Status", "Quantidade"]
+            st.pyplot(contagem.set_index("Status").plot.pie(
+                y="Quantidade", autopct='%1.1f%%', ylabel="", figsize=(4, 4)).figure)
+# Função para gerar recibo PDF
 def gerar_recibo(df, inicio, fim):
     c = canvas.Canvas(ARQUIVO_PDF, pagesize=A4)
     largura, altura = A4
@@ -201,47 +215,48 @@ def gerar_recibo(df, inicio, fim):
     c.drawString(x, y, f"Data de Emissão: {datetime.today().strftime('%d/%m/%Y')}")
     c.save()
     return ARQUIVO_PDF
-
 # Página: Recibo
 if aba == "Recibo":
-    st.subheader("🧾 Gerar Recibo PDF")
+    st.subheader("🧾 Gerar Recibo")
     df = carregar_dados()
     df = df[(df["Ajudante"] == ajudante_selecionado) & (df["Usuário"] == username)]
     df["Data_ord"] = pd.to_datetime(df["Data"], dayfirst=True)
-    df_presenca = df[df["Comparecimento"] == "Presente"]
+    df_pres = df[df["Comparecimento"] == "Presente"]
 
-    if df_presenca.empty:
-        st.info("Nenhum registro de presença para este ajudante.")
+    if df_pres.empty:
+        st.info("Nenhum registro de presença encontrado.")
     else:
-        opcao = st.radio("Período", ["Últimos 15 dias", "Mês atual", "Personalizado"])
+        periodo = st.radio("Período:", ["Últimos 15 dias", "Mês atual", "Personalizado"])
         hoje = datetime.today()
-
-        if "15 dias" in opcao:
-            inicio, fim = hoje - timedelta(days=15), hoje
-        elif "Mês" in opcao:
-            inicio, fim = hoje.replace(day=1), hoje
+        if periodo == "Últimos 15 dias":
+            ini, fim = hoje - timedelta(days=15), hoje
+        elif periodo == "Mês atual":
+            ini, fim = hoje.replace(day=1), hoje
         else:
             col1, col2 = st.columns(2)
-            with col1: inicio = st.date_input("Início")
-            with col2: fim = st.date_input("Fim")
+            with col1:
+                ini = st.date_input("Início")
+            with col2:
+                fim = st.date_input("Fim")
 
-        df_filtrado = df_presenca[
-            (df_presenca["Data_ord"] >= pd.to_datetime(inicio)) &
-            (df_presenca["Data_ord"] <= pd.to_datetime(fim))
-        ]
+        df_filtro = df_pres[(df_pres["Data_ord"] >= pd.to_datetime(ini)) &
+                            (df_pres["Data_ord"] <= pd.to_datetime(fim))]
 
-        if df_filtrado.empty:
-            st.warning("Nenhum dado no período selecionado.")
+        if df_filtro.empty:
+            st.warning("Nenhum dado no intervalo selecionado.")
         else:
-            if st.button("📄 Gerar e Baixar Recibo"):
-                pdf = gerar_recibo(df_filtrado, inicio.strftime('%d/%m/%Y'), fim.strftime('%d/%m/%Y'))
-                with open(pdf, "rb") as f:
-                    st.download_button("📥 Baixar Recibo PDF", f, file_name=ARQUIVO_PDF)
+            if st.button("📄 Gerar Recibo PDF"):
+                gerar_recibo(df_filtro, ini.strftime("%d/%m/%Y"), fim.strftime("%d/%m/%Y"))
+                with open(ARQUIVO_PDF, "rb") as f:
+                    st.download_button("📥 Baixar PDF", f, file_name=ARQUIVO_PDF)
 
-            st.download_button("📤 Exportar Excel", df_filtrado.to_excel(index=False, engine="openpyxl"), file_name="dias_trabalhados.xlsx")
+            st.download_button("📤 Exportar Excel",
+                               df_filtro.to_excel(index=False, engine="openpyxl"),
+                               file_name="dias_trabalhados.xlsx")
 
             if st.button("🧹 Iniciar Nova Quinzena"):
                 df_antigo = carregar_dados()
-                df_novo = df_antigo[~((df_antigo["Ajudante"] == ajudante_selecionado) & (df_antigo["Usuário"] == username))]
+                df_novo = df_antigo[~((df_antigo["Ajudante"] == ajudante_selecionado) &
+                                      (df_antigo["Usuário"] == username))]
                 salvar_dados(df_novo)
-                st.success("Registros do ajudante apagados com sucesso.")
+                st.success("Presenças deste ajudante foram apagadas com sucesso.")
