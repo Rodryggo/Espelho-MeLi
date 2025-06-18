@@ -181,3 +181,46 @@ def gerar_recibo(df, inicio, fim):
     c.drawString(x, y, "Assinatura: _________________________")
     y -= 20
     c.drawString(x, y)
+
+if aba == "Recibo":
+    st.subheader("🧾 Gerar Recibo por Dias Escolhidos")
+
+    df = carregar_dados()
+    df = df[(df["Ajudante"] == ajudante_selecionado) & (df["Usuário"] == username)]
+    df["Data_ord"] = pd.to_datetime(df["Data"], dayfirst=True)
+    df_pres = df[df["Comparecimento"] == "Presente"]
+
+    if df_pres.empty:
+        st.info("Nenhum registro de presença encontrado.")
+    else:
+        datas_disponiveis = sorted(df_pres["Data"].unique())
+        datas_escolhidas = st.multiselect("📅 Selecione os dias para o recibo:", datas_disponiveis)
+
+        df_filtro = df_pres[df_pres["Data"].isin(datas_escolhidas)]
+
+        if df_filtro.empty:
+            st.warning("Nenhum dado correspondente aos dias escolhidos.")
+        else:
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write(f"**Total de diárias:** {df_filtro.shape[0]}")
+            with col2:
+                valor_total = df_filtro["Valor (R$)"].sum()
+                st.write(f"**Total a receber:** R$ {valor_total:.2f}".replace('.', ','))
+
+            if st.button("📄 Gerar Recibo PDF"):
+                gerar_recibo(df_filtro, datas_escolhidas[0], datas_escolhidas[-1])
+                with open(ARQUIVO_PDF, "rb") as f:
+                    st.download_button("📥 Baixar Recibo PDF", f, file_name="recibo_dias_especificos.pdf")
+
+            st.download_button("📊 Exportar Excel dos dias",
+                df_filtro.to_excel(index=False, engine="openpyxl"),
+                file_name="recibo_dias_especificos.xlsx"
+            )
+
+            if st.button("🧹 Iniciar Nova Quinzena"):
+                df_antigo = carregar_dados()
+                df_novo = df_antigo[~((df_antigo["Ajudante"] == ajudante_selecionado) &
+                                      (df_antigo["Usuário"] == username))]
+                salvar_dados(df_novo)
+                st.success("Registros zerados com sucesso!")
