@@ -28,22 +28,29 @@ ARQUIVO_AJUDANTES = "ajudantes.json"
 VALOR_DIARIA = 50.0
 
 # Login com hash de senha
+import streamlit_authenticator as stauth
+
+# Nomes e usernames
 nomes = ["Rodrigo", "Luana"]
 usuarios = ["rodrigo", "luana"]
+
+# Senhas já criptografadas (1234 e senha123)
 hashed_pw = [
-    "$2b$12$tr3sZ6UJ4EFmvM0QH0IGme5KUg8VcMCur6ggWrKtToMkUue1e1Hba",  # 1234
-    "$2b$12$AhPR.DGKfdM6UzI8IRW6m.F/zUV7ZzK3gP1Go9uLRsLyvvqnmVkZ2"   # senha123
+    "$2b$12$tr3sZ6UJ4EFmvM0QH0IGme5KUg8VcMCur6ggWrKtToMkUue1e1Hba",
+    "$2b$12$AhPR.DGKfdM6UzI8IRW6m.F/zUV7ZzK3gP1Go9uLRsLyvvqnmVkZ2"
 ]
 
+# Criação do autentificador
 authenticator = stauth.Authenticate(
     nomes,
     usuarios,
     hashed_pw,
-    "app_ajudante_login",
-    "cleverson_app",
+    "app_ajudante_login",  # nome do cookie
+    "cleverson_app",       # chave secreta
     cookie_expiry_days=30
 )
 
+# Login
 nome_usuario, autenticado, username = authenticator.login("Login", "main")
 if not autenticado:
     st.stop()
